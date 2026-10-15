@@ -245,9 +245,7 @@ def proses():
     sumber = (data.get("sumber") or "").strip().strip('"').strip("'")
     potong_mentah = data.get("potong") or []
     mode = data.get("mode") if data.get("mode") in ("crop", "blur") else "crop"
-    try:
    visual_hook = data.get("visual_hook", "")
-
         posisi = min(1.0, max(0.0, float(data.get("posisi", 0.5))))
     except (TypeError, ValueError):
         posisi = 0.5
