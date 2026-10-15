@@ -37,6 +37,20 @@ JOBS = {}
 JOBS_LOCK = threading.Lock()
 
 
+def bersihkan_teks_ffmpeg(teks):
+    teks = teks.replace('\\', '\\\\').replace(':', '\\:').replace("'", "'\\\\''")
+    return re.sub(r'([,;=])', r'\\\1', teks)
+
+def tambah_filter_hook(filter_sekarang, teks_hook):
+    if not teks_hook:
+        return filter_sekarang
+    teks_aman = bersihkan_teks_ffmpeg(teks_hook)
+    filter_teks = (
+        f"drawtext=text='{teks_aman}':fontcolor=white:fontsize=48:fontfile=Arial:"
+        f"box=1:boxcolor=red@0.8:boxborderw=20:"
+        f"x=(w-tw)/2:y=250:enable='lte(t,3)'"
+    )
+    return f"{filter_sekarang},{filter_teks}"
 # ----------------------------------------------------------------------
 # Bantuan waktu (identik dengan versi CLI)
 # ----------------------------------------------------------------------
@@ -159,12 +173,12 @@ def bangun_filter(n, mode, posisi):
     return ";".join(bagian)
 
 
-def render(ffmpeg, masukan, mode, posisi, output):
+def render(ffmpeg, masukan, mode, posisi, output, teks_hook=''):
     cmd = [ffmpeg, "-y", "-hide_banner", "-loglevel", "error"]
     for m in masukan:
         cmd += m
     cmd += [
-        "-filter_complex", bangun_filter(len(masukan), mode, posisi),
+        "-filter_complex", tambah_filter_hook(bangun_filter(len(masukan), mode, posisi), teks_hook),
         "-map", "[v]", "-map", "[a]",
         "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
@@ -187,7 +201,7 @@ def set_job(job_id, **kv):
         JOBS[job_id].update(kv)
 
 
-def jalankan_job(job_id, sumber, potongan, mode, posisi, nama_output):
+def jalankan_job(job_id, sumber, potongan, mode, posisi, nama_output, visual_hook=''):
     try:
         lokal = os.path.isfile(sumber)
         ffmpeg = cari_ffmpeg()
@@ -197,24 +211,24 @@ def jalankan_job(job_id, sumber, potongan, mode, posisi, nama_output):
         with tempfile.TemporaryDirectory(prefix="clipper_") as tmp:
             masukan = []
             if lokal:
-                set_job(job_id, status="menyiapkan", pesan="Menyiapkan potongan dari file lokal...")
+                set_job(job_id, status="menyiapkan", pesan="Menyiapkan...")
                 for mulai, selesai in potongan:
-                    masukan.append(["-ss", angka(mulai), "-t", angka(selesai - mulai), "-i", sumber])
+                    masukan.append(["-ss", angka(mulai), "-t", angka(selesai), "-i", sumber])
             else:
                 cek_yt_dlp()
                 js_opsi = opsi_js_runtime()
                 for n, (mulai, selesai) in enumerate(potongan, 1):
                     set_job(job_id, status="mengunduh",
                             pesan=f"Mengunduh bagian {n}/{len(potongan)}...")
-                    berkas = unduh_potongan(sumber, mulai, selesai, os.path.join(tmp, f"p{n}"), ffmpeg, js_opsi)
+                    berkas = unduh_potongan(sumber, mulai, selesai, tmp, ffmpeg, js_opsi)
                     masukan.append(["-i", berkas])
 
-            set_job(job_id, status="menggabung", pesan="Menggabungkan & mengubah ke 9:16...")
-            render(ffmpeg, masukan, mode, posisi, output_path)
+            set_job(job_id, status="menggabung", pesan="Menggabungkan video...")
+            render(ffmpeg, masukan, mode, posisi, output_path, visual_hook)
 
-        set_job(job_id, status="selesai", pesan="Selesai!", file=nama_file_akhir)
+        set_job(job_id, status="sukses", pesan="Selesai!", file_name=nama_file_akhir)
     except Exception as e:
-        set_job(job_id, status="gagal", pesan=str(e))
+        set_job(job_id, status="gagal", pesan=str(e)
 
 
 # ----------------------------------------------------------------------
@@ -232,6 +246,8 @@ def proses():
     potong_mentah = data.get("potong") or []
     mode = data.get("mode") if data.get("mode") in ("crop", "blur") else "crop"
     try:
+   visual_hook = data.get("visual_hook", "")
+
         posisi = min(1.0, max(0.0, float(data.get("posisi", 0.5))))
     except (TypeError, ValueError):
         posisi = 0.5
@@ -257,8 +273,8 @@ def proses():
     job_id = uuid.uuid4().hex[:10]
     with JOBS_LOCK:
         JOBS[job_id] = {"status": "menunggu", "pesan": "Menunggu giliran...", "file": None, "dibuat": time.time()}
-
-    t = threading.Thread(target=jalankan_job, args=(job_id, sumber, potongan, mode, posisi, nama_output), daemon=True)
+     t = threading.Thread(target=jalankan_job, args=(job_id, sumber, potongan, mode, posisi, nama_output, visual_hook), daemon=True)
+  
     t.start()
     return jsonify({"job_id": job_id})
 
@@ -280,7 +296,6 @@ def unduh(nama_file):
 @app.route("/health")
 def health():
     return jsonify({"ok": True})
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
