@@ -21,6 +21,7 @@ import time
 import uuid
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask_cors import CORS
 
 LEBAR, TINGGI, FPS = 1080, 1920, 30
 
@@ -29,6 +30,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "hasil")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = Flask(__name__)
+CORS(app)
 
 # job_id -> {"status", "pesan", "file", "dibuat"}
 JOBS = {}
