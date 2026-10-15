@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper — jadikan klip vertikal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #15131c;
+    --surface: #1f1c29;
+    --surface-2: #272333;
+    --line: #35304572;
+    --text: #ece7f5;
+    --muted: #938da8;
+    --accent: #ff3d6e;
+    --accent-dim: #ff3d6e22;
+    --ok: #2bd9b3;
+    --ok-dim: #2bd9b322;
+    --err: #ff6b6b;
+    --radius: 14px;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 520px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  .hero{ display:flex; align-items:center; gap: 18px; margin-bottom: 28px; }
+  .hero svg{ flex-shrink:0; }
+  .hero h1{ font-size: 1.5rem; margin:0 0 4px; font-weight:700; letter-spacing:-0.01em; }
+  .hero p{ margin:0; color: var(--muted); font-size: 0.92rem; line-height:1.45; }
+
+  section{ margin-bottom: 22px; }
+  label{ display:block; font-size: 0.82rem; color: var(--muted); margin-bottom: 7px; }
+
+  input[type=text], input[type=url]{
+    width:100%; background: var(--surface); border: 1px solid var(--line);
+    color: var(--text); border-radius: 10px; padding: 12px 13px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem;
+  }
+  input.mono{ font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+  input:focus{ outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+  .potongan-row{
+    display:flex; align-items:center; gap: 8px; margin-bottom: 9px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  }
+  .potongan-row .idx{
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--muted);
+    width: 18px; flex-shrink:0;
+  }
+  .potongan-row input{ border:none; background:transparent; padding: 6px 4px; width: 100%; }
+  .potongan-row span.ke{ color: var(--muted); font-family:'JetBrains Mono',monospace; }
+  .hapus-btn{
+    background:none; border:none; color: var(--muted); font-size: 1.1rem; cursor:pointer;
+    padding: 2px 6px; flex-shrink:0;
+  }
+  .hapus-btn:hover{ color: var(--err); }
+
+  .tambah-btn{
+    width:100%; background: transparent; border: 1px dashed var(--line); color: var(--muted);
+    border-radius: 10px; padding: 10px; font-family:'Space Grotesk',sans-serif; font-size: 0.88rem;
+    cursor:pointer; margin-top: 2px;
+  }
+  .tambah-btn:hover{ border-color: var(--accent); color: var(--accent); }
+
+  .segmented{ display:flex; background: var(--surface); border:1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .segmented button{
+    flex:1; background:none; border:none; color: var(--muted); padding: 9px; border-radius: 8px;
+    font-family:'Space Grotesk',sans-serif; font-size: 0.88rem; cursor:pointer;
+  }
+  .segmented button.aktif{ background: var(--accent); color: #1a0e12; font-weight:600; }
+
+  input[type=range]{ width:100%; accent-color: var(--accent); margin-top: 6px; }
+  .range-label{ display:flex; justify-content:space-between; font-size:0.78rem; color: var(--muted); font-family:'JetBrains Mono',monospace; }
+
+  .kirim-btn{
+    width:100%; background: var(--accent); color: #1a0e12; border:none; border-radius: 12px;
+    padding: 15px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size: 1rem;
+    cursor:pointer; margin-top: 6px;
+  }
+  .kirim-btn:disabled{ opacity: 0.5; cursor:default; }
+
+  .status-box{
+    display:none; margin-top: 20px; padding: 16px; border-radius: var(--radius);
+    background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .status-box.tampil{ display:block; }
+  .status-baris{ display:flex; align-items:center; gap: 10px; }
+  .spin{
+    width:16px; height:16px; border-radius:50%; border: 2px solid var(--line);
+    border-top-color: var(--accent); animation: putar 0.8s linear infinite; flex-shrink:0;
+  }
+  @keyframes putar{ to{ transform: rotate(360deg); } }
+  .status-teks{ font-size: 0.9rem; color: var(--text); }
+  .status-box.selesai{ border-color: var(--ok-dim); background: var(--ok-dim); }
+  .status-box.gagal{ border-color: #ff6b6b33; background: #ff6b6b1a; }
+  .status-box.gagal .status-teks{ color: var(--err); }
+
+  .unduh-link{
+    display:block; text-align:center; margin-top: 12px; background: var(--ok); color: #082921;
+    text-decoration:none; font-weight:700; padding: 12px; border-radius: 10px; font-size:0.92rem;
+  }
+
+  .catatan{ margin-top: 26px; font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <svg width="54" height="54" viewBox="0 0 54 54" fill="none">
+      <rect x="1" y="10" width="34" height="19" rx="2.5" stroke="#55506b" stroke-width="2"/>
+      <rect x="31" y="5" width="22" height="39" rx="3.5" fill="#1f1c29" stroke="#ff3d6e" stroke-width="2.2"/>
+      <rect x="37" y="11" width="10" height="2" rx="1" fill="#ff3d6e" opacity="0.7"/>
+    </svg>
+    <div>
+      <h1>Clipper</h1>
+      <p>Potong bagian video, gabungkan, jadikan vertikal 9:16 — siap unggah ke TikTok, Reels, atau Shorts.</p>
+    </div>
+  </div>
+
+  <form id="form-clipper">
+    <section>
+      <label for="sumber">Link YouTube atau path file video</label>
+      <input type="text" id="sumber" placeholder="https://youtu.be/XXXXXXXXXXX" autocomplete="off" required>
+    </section>
+
+    <section>
+      <label>Bagian yang dipotong (urutan = urutan hasil akhir)</label>
+      <div id="daftar-potongan"></div>
+      <button type="button" class="tambah-btn" id="tambah-potongan">+ tambah potongan</button>
+    </section>
+
+    <section>
+      <label>Tampilan</label>
+      <div class="segmented" id="mode-segmented">
+        <button type="button" data-mode="crop" class="aktif">Crop tengah</button>
+        <button type="button" data-mode="blur">Blur latar</button>
+      </div>
+    </section>
+
+    <section id="posisi-section">
+      <label>Posisi crop (kiri — tengah — kanan)</label>
+      <input type="range" id="posisi" min="0" max="1" step="0.05" value="0.5">
+      <div class="range-label"><span>kiri</span><span id="posisi-nilai">0.50</span><span>kanan</span></div>
+    </section>
+
+    <section>
+      <label for="output">Nama file hasil</label>
+      <input type="text" class="mono" id="output" value="klip_vertikal.mp4">
+    </section>
+
+    <button type="submit" class="kirim-btn" id="kirim-btn">Buat video</button>
+  </form>
+
+  <div class="status-box" id="status-box">
+    <div class="status-baris">
+      <div class="spin" id="status-spin"></div>
+      <div class="status-teks" id="status-teks">Menunggu...</div>
+    </div>
+    <a href="#" class="unduh-link" id="unduh-link" style="display:none">Unduh video</a>
+  </div>
+
+  <p class="catatan">
+    Video panjang atau unduhan 1080p bisa makan waktu beberapa menit — halaman ini akan terus memeriksa
+    status sampai selesai, jadi boleh ditinggal (jangan tutup tab-nya).
+  </p>
+</div>
+
+<script>
+let jumlahPotongan = 0;
+
+function tambahBarisPotongan(mulai, selesai){
+  jumlahPotongan++;
+  const idx = jumlahPotongan;
+  const daftar = document.getElementById('daftar-potongan');
+  const baris = document.createElement('div');
+  baris.className = 'potongan-row';
+  baris.dataset.idx = idx;
+  baris.innerHTML = `
+    <span class="idx">${idx}</span>
+    <input type="text" class="mono mulai" placeholder="27:01" value="${mulai||''}">
+    <span class="ke">–</span>
+    <input type="text" class="mono selesai" placeholder="27:36" value="${selesai||''}">
+    <button type="button" class="hapus-btn" title="hapus">×</button>
+  `;
+  baris.querySelector('.hapus-btn').addEventListener('click', () => {
+    baris.remove();
+  });
+  daftar.appendChild(baris);
+}
+tambahBarisPotongan();
+document.getElementById('tambah-potongan').addEventListener('click', () => tambahBarisPotongan());
+
+document.querySelectorAll('#mode-segmented button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mode-segmented button').forEach(b => b.classList.remove('aktif'));
+    btn.classList.add('aktif');
+    document.getElementById('posisi-section').style.display = btn.dataset.mode === 'crop' ? 'block' : 'none';
+  });
+});
+
+const posisiInput = document.getElementById('posisi');
+posisiInput.addEventListener('input', () => {
+  document.getElementById('posisi-nilai').textContent = parseFloat(posisiInput.value).toFixed(2);
+});
+
+const form = document.getElementById('form-clipper');
+const kirimBtn = document.getElementById('kirim-btn');
+const statusBox = document.getElementById('status-box');
+const statusTeks = document.getElementById('status-teks');
+const statusSpin = document.getElementById('status-spin');
+const unduhLink = document.getElementById('unduh-link');
+
+let polling = null;
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const potong = [...document.querySelectorAll('.potongan-row')].map(row => {
+    const a = row.querySelector('.mulai').value.trim();
+    const b = row.querySelector('.selesai').value.trim();
+    return a && b ? `${a}-${b}` : null;
+  }).filter(Boolean);
+
+  if (potong.length === 0){
+    alert('Isi minimal satu potongan waktu.');
+    return;
+  }
+
+  const modeAktif = document.querySelector('#mode-segmented button.aktif').dataset.mode;
+
+  const payload = {
+    sumber: document.getElementById('sumber').value,
+    potong: potong,
+    mode: modeAktif,
+    posisi: parseFloat(posisiInput.value),
+    output: document.getElementById('output').value || 'klip_vertikal.mp4'
+  };
+
+  kirimBtn.disabled = true;
+  kirimBtn.textContent = 'Memproses...';
+  statusBox.className = 'status-box tampil';
+  statusSpin.style.display = 'block';
+  unduhLink.style.display = 'none';
+  statusTeks.textContent = 'Mengirim permintaan...';
+
+  try {
+    const res = await fetch('/proses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal memulai proses.');
+    mulaiPolling(data.job_id);
+  } catch (err) {
+    tampilGagal(err.message);
+  }
+});
+
+function mulaiPolling(jobId){
+  if (polling) clearInterval(polling);
+  polling = setInterval(async () => {
+    try {
+      const res = await fetch('/status/' + jobId);
+      const job = await res.json();
+      if (!res.ok) throw new Error(job.error || 'Job tidak ditemukan.');
+
+      statusTeks.textContent = job.pesan || job.status;
+
+      if (job.status === 'selesai'){
+        clearInterval(polling);
+        statusSpin.style.display = 'none';
+        statusBox.className = 'status-box tampil selesai';
+        unduhLink.href = '/unduh/' + job.file;
+        unduhLink.style.display = 'block';
+        kirimBtn.disabled = false;
+        kirimBtn.textContent = 'Buat video lagi';
+      } else if (job.status === 'gagal'){
+        clearInterval(polling);
+        tampilGagal(job.pesan);
+      }
+    } catch (err) {
+      clearInterval(polling);
+      tampilGagal(err.message);
+    }
+  }, 2500);
+}
+
+function tampilGagal(pesan){
+  statusSpin.style.display = 'none';
+  statusBox.className = 'status-box tampil gagal';
+  statusTeks.textContent = pesan;
+  kirimBtn.disabled = false;
+  kirimBtn.textContent = 'Coba lagi';
+}
+</script>
+</body>
+</html>
