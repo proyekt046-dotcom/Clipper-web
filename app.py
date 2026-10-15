@@ -229,7 +229,7 @@ def jalankan_job(job_id, sumber, potongan, mode, posisi, nama_output, visual_hoo
         set_job(job_id, status="sukses", pesan="Selesai!", file_name=nama_file_akhir)
     except Exception as e:
         set_job(job_id, status="gagal", pesan=str(e)
-
+    ) 
 
 # ----------------------------------------------------------------------
 # Rute web
