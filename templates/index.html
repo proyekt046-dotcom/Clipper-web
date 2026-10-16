@@ -134,8 +134,9 @@
                 selesai: document.getElementById('time-end').value,
                 teks_hook: document.getElementById('teks-hook').value,
                 mode: displayMode,
-                warna_sub: document.getElementById('warna-sub').value
-            })
+                warna_sub: document.getElementById('warna-sub').value, 
+         campaign_target: document.getElementById('campaign-target').value
+   })
         })
         .then(res => res.json())
         .then(data => {
