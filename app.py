@@ -31,7 +31,8 @@ def proses_video():
     teks_hook_manual = data.get('teks_hook', '') 
     mode_tampilan = data.get('mode', 'crop')
     warna_sub = data.get('warna_sub', 'yellow')
-    
+            campaign_target = data.get('campaign_target', '')
+
     # Bersihkan folder hasil lama
     for f in os.listdir(OUTPUT_DIR):
         try: os.remove(os.path.join(OUTPUT_DIR, f))
@@ -60,9 +61,11 @@ def proses_video():
         if mode_cut == 'auto':
             url_api = f"https://googleapis.com{GEMINI_API_KEY}"
             headers = {'Content-Type': 'application/json'}
-            prompt_ai = (
-                f"Video berjudul '{judul_video}' deskripsi: '{deskripsi_video}'. "
-                "Temukan 3 segmen momen paling menarik (durasi masing-masing 20-40 detik) untuk konten TikTok viral. "
+                    prompt_ai = (
+            f"Video berjudul '{judul_video}' deskripsi: '{deskripsi_video}'. "
+            f"Tugas utama: Cari dan tentukan 3 segmen momen terbaik yang PALING RELEVAN dengan Target Campaign: '{campaign_target}'. "
+            (durasi 20-40 detik) harus fokus membahas topik campaign tersebut dan memiliki 'hook' yang sangat kuat untuk konten tiktok viral. "
+
                 "Berikan jawaban HANYA berupa array JSON mentah berformat seperti ini tanpa markdown atau teks tambahan: "
                 '[{"mulai": "01:20", "selesai": "01:50", "teks_hook": "Judul Hook 1", "skor": 95, "alasan": "Alasan viral 1"}, '
                 '{"mulai": "03:10", "selesai": "03:40", "teks_hook": "Judul Hook 2", "skor": 88, "alasan": "Alasan viral 2"}, '
