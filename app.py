@@ -31,6 +31,11 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = Flask(__name__)
 CORS(app)
+import google.generativeai as genai
+
+# Ganti teks di bawah dengan API Key dari Google AI Studio yang Anda salin tadi
+GOOGLE_API_KEY = "AQ.Ab8RN6IEWvky6PEWcSs5qaMr9VXk0..." 
+genai.configure(api_key=GOOGLE_API_KEY)
 
 # job_id -> {"status", "pesan", "file", "dibuat"}
 JOBS = {}
@@ -298,3 +303,60 @@ def health():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+@app.route('/proses', methods=['POST'])
+def proses_video():
+    data = request.json
+    url = data.get('url')
+    mulai = data.get('mulai')      # Format "00:01:00"
+    selesai = data.get('selesai')  # Format "00:01:10"
+    
+    output_download = "video_asli.mp4"
+    output_potong = "video_potong.mp4"
+    output_hasil = os.path.join(OUTPUT_DIR, "klip_iklan.mp4")
+    
+    # Bersihkan file lama jika ada
+    for f in [output_download, output_potong, output_hasil]:
+        if os.path.exists(f): os.remove(f)
+
+    try:
+        # 1. Unduh video asli menggunakan yt-dlp secara aman
+        import yt_dlp
+        ydl_opts = {'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]', 'outtmpl': output_download}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+            
+        # 2. Potong durasi awal di server lokal agar hemat kuota kirim ke AI
+        cut_cmd = f"ffmpeg -i {output_download} -ss {mulai} -to {selesai} -c copy {output_potong} -y"
+        subprocess.run(cut_cmd, shell=True, check=True)
+        
+        # 3. Minta bantuan Google Gemini secara gratis untuk melacak wajah pembicara
+        video_file = genai.upload_file(path=output_potong)
+        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+        prompt = (
+            "Analisis video iklan ini. Deteksi di mana posisi horizontal wajah pembicara utama berada secara dominan. "
+            "Apakah cenderung di 'kiri', 'tengah', atau 'kanan' layar? Jawab HANYA dengan satu kata saja di antara opsi tersebut."
+        )
+        response = model.generate_content([video_file, prompt])
+        posisi_wajah = response.text.strip().lower()
+        
+        # Hapus file dari cloud Google setelah dianalisis
+        genai.delete_file(video_file.name)
+        
+        # 4. Potong Fullscreen Vertikal (9:16) Berdasarkan Peta Wajah dari Gemini
+        if "kiri" in posisi_wajah:
+            ffmpeg_cmd = f"ffmpeg -i {output_potong} -vf \"crop=ih*9/16:ih:0:0\" -c:v libx264 -crf 23 -c:a aac {output_hasil} -y"
+        elif "kanan" in posisi_wajah:
+            ffmpeg_cmd = f"ffmpeg -i {output_potong} -vf \"crop=ih*9/16:ih:in_w-out_w:0\" -c:v libx264 -crf 23 -c:a aac {output_hasil} -y"
+        else:
+            ffmpeg_cmd = f"ffmpeg -i {output_potong} -vf \"crop=ih*9/16:ih\" -c:v libx264 -crf 23 -c:a aac {output_hasil} -y"
+            
+        subprocess.run(ffmpeg_cmd, shell=True, check=True)
+        
+        # Hapus file sementara di HP
+        if os.path.exists(output_download): os.remove(output_download)
+        if os.path.exists(output_potong): os.remove(output_potong)
+        
+        return jsonify({"status": "Sukses", "video_url": f"/hasils/klip_iklan.mp4", "posisi_terdeteksi": posisi_wajah})
+        
+    except Exception as e:
+        return jsonify({"status": "Gagal", "error": str(e)}), 500
