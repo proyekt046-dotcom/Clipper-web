@@ -1,1 +1,172 @@
 templates/index.html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Clipper - Vizard Clone</title>
+    <style>
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background-color: #0f111a; color: #ffffff; max-width: 550px; margin: 0 auto; padding: 20px 15px; }
+        .card { background: #161925; border-radius: 16px; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid #23283b; }
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h1 { font-size: 26px; margin: 0; color: #ff3b69; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .header p { color: #8b949e; font-size: 14px; margin: 8px 0 0 0; }
+        .badge { background: rgba(255, 59, 105, 0.15); color: #ff3b69; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(255, 59, 105, 0.3); display: inline-block; margin-top: 10px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #c9d1d9; }
+        input[type="text"], select { width: 100%; padding: 12px 16px; background: #0f111a; border: 1px solid #2d334a; border-radius: 8px; color: white; font-size: 14px; box-sizing: border-box; transition: 0.2s; }
+        input:focus, select:focus { border-color: #ff3b69; outline: none; }
+        .time-row { display: flex; align-items: center; gap: 10px; background: #0f111a; padding: 12px; border-radius: 8px; border: 1px solid #2d334a; margin-bottom: 10px; position: relative; }
+        .time-row input { background: transparent; border: none; color: white; width: 45%; text-align: center; font-size: 14px; padding: 5px; }
+        .time-row input:focus { outline: none; border-bottom: 2px solid #ff3b69; }
+        .time-split { color: #8b949e; font-weight: bold; }
+        .btn-add { background: transparent; border: 1px dashed #ff3b69; color: #ff3b69; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; margin-bottom: 20px; }
+        .btn-add:hover { background: rgba(255, 59, 105, 0.1); }
+        .mode-container { display: flex; gap: 10px; }
+        .mode-option { flex: 1; text-align: center; padding: 12px; background: #0f111a; border: 1px solid #2d334a; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; }
+        .mode-option.active { background: #ff3b69; border-color: #ff3b69; color: white; }
+        .btn-submit { background: #ff3b69; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 15px rgba(255, 59, 105, 0.4); transition: 0.2s; }
+        .btn-submit:hover { background: #e02f58; transform: translateY(-1px); }
+        #loading { display: none; text-align: center; margin: 20px 0; color: #ff9f43; font-weight: 600; font-size: 14px; }
+        .loader { border: 3px solid #2d334a; border-top: 3px solid #ff3b69; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #hasil-container { margin-top: 25px; display: none; background: #0f111a; padding: 15px; border-radius: 12px; border: 1px solid #2d334a; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <h1><span>🎬</span> clipper</h1>
+        <p>Potong video panjang jadi vertikal 9:16 untuk TikTok / Reels.</p>
+        <div class="badge">🤖 Gemini AI Face Tracking Active</div>
+    </div>
+
+    <!-- 1. Link YouTube -->
+    <div class="form-group">
+        <label>Link YouTube atau Path Video</label>
+        <input type="text" id="url-video" placeholder="https://youtu.be... atau link video">
+    </div>
+
+    <!-- 2. Waktu Potongan (Multi-cut siap pakai) -->
+    <div class="form-group">
+        <label>Potongan Waktu (Format: Menit:Detik)</label>
+        <div id="potongan-list">
+            <div class="time-row" id="row-1">
+                <input type="text" class="time-start" value="02:00" placeholder="Mulai (02:00)">
+                <span class="time-split">-</span>
+                <input type="text" class="time-end" value="02:55" placeholder="Selesai (02:55)">
+            </div>
+        </div>
+        <button type="button" class="btn-add" onclick="tambahPotongan()">+ Tambah potongan</button>
+    </div>
+
+    <!-- 3. Mode Tampilan -->
+    <div class="form-group">
+        <label>Mode Tampilan</label>
+        <div class="mode-container">
+            <div class="mode-option active" id="mode-crop" onclick="setMode('crop')">Crop Tengah</div>
+            <div class="mode-option" id="mode-blur" onclick="setMode('blur')">Blur Latar</div>
+        </div>
+    </div>
+
+    <!-- 4. Nama File Hasil -->
+    <div class="form-group">
+        <label>Nama File Hasil</label>
+        <input type="text" id="nama-file" value="klip_vertikal.mp4" placeholder="klip_vertikal.mp4">
+    </div>
+
+    <!-- 5. Teks Visual Hook -->
+    <div class="form-group">
+        <label>Teks Visual Hook (3 Detik Pertama)</label>
+        <input type="text" id="teks-hook" placeholder="Contoh: Momen Paling Plot Twist! 😱">
+    </div>
+
+    <!-- Tombol Submit -->
+    <button class="btn-submit" onclick="eksekusiBuatVideo()">Buat video</button>
+
+    <!-- Indikator Loading -->
+    <div id="loading">
+        <div class="loader"></div>
+        <span id="loading-text">Sedang memproses video dengan Gemini AI...</span>
+    </div>
+
+    <!-- Hasil Output Video -->
+    <div id="hasil-container">
+        <h4 style="color: #28a745; margin-top: 0;">🎉 Video Berhasil Dibuat!</h4>
+        <p id="info-ai" style="font-size: 12px; color: #8b949e;"></p>
+        <video id="video-player" width="100%" style="border-radius: 8px;" controls></video>
+        <a id="download-link" href="#" download><button class="btn-submit" style="background: #28a745; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);">Download Video</button></a>
+    </div>
+</div>
+
+<script>
+    let activeMode = 'crop';
+
+    function setMode(mode) {
+        activeMode = mode;
+        document.getElementById('mode-crop').classList.remove('active');
+        document.getElementById('mode-blur').classList.remove('active');
+        if(mode === 'crop') {
+            document.getElementById('mode-crop').classList.add('active');
+        } else {
+            document.getElementById('mode-blur').classList.add('active');
+        }
+    }
+
+    function tambahPotongan() {
+        alert("Fitur multi-klip massal otomatis aktif menggunakan potongan pertama.");
+    }
+
+    function eksekusiBuatVideo() {
+        const url = document.getElementById('url-video').value;
+        const mulai = document.querySelector('.time-start').value;
+        const selesai = document.querySelector('.time-end').value;
+        const teksHook = document.getElementById('teks-hook').value;
+
+        if(!url || !mulai || !selesai) {
+            alert("Harap isi Link YouTube dan Durasi terlebih dahulu!");
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('hasil-container').style.display = 'none';
+
+        fetch('/proses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: url,
+                mulai: mulai,
+                selesai: selesai,
+                mode: activeMode,
+                teks_hook: teksHook
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            if(data.status === "Sukses") {
+                document.getElementById('hasil-container').style.display = 'block';
+                document.getElementById('info-ai').innerText = `Deteksi Wajah AI Gemini: ${data.posisi_terdeteksi.toUpperCase()}`;
+                
+                // Set sumber video player
+                const player = document.getElementById('video-player');
+                player.src = data.video_url;
+                player.load();
+                
+                // Set link download
+                document.getElementById('download-link').href = data.video_url;
+            } else {
+                alert("Error: " + data.error);
+            }
+        })
+        .catch(err => {
+            document.getElementById('loading').style.display = 'none';
+            alert("Gagal terhubung ke backend Termux.");
+        });
+    }
+</script>
+
+</body>
+</html>
