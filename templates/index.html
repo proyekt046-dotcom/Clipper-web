@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Smart Clipper - Vizard Clone</title>
+    <title>AI Smart Clipper Pro - Vizard Dashboard</title>
     <style>
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #0f111a; color: #ffffff; max-width: 550px; margin: 0 auto; padding: 20px 15px; }
         .card { background: #161925; border-radius: 16px; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid #23283b; }
@@ -19,18 +19,17 @@
         .mode-option.active { background: #ff3b69; border-color: #ff3b69; color: white; }
         .btn-submit { background: #ff3b69; color: white; border: none; width: 100%; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 15px rgba(255, 59, 105, 0.4); }
         #loading { display: none; text-align: center; margin: 20px 0; color: #ff9f43; font-weight: 600; }
-        #hasil-container { margin-top: 25px; display: none; background: #0f111a; padding: 15px; border-radius: 12px; border: 1px solid #2d334a; }
-        .time-box { display: flex; gap: 10px; }
-        .time-box input { width: 50%; text-align: center; }
+        .klip-box { background: #0f111a; padding: 15px; border-radius: 12px; border: 1px solid #2d334a; margin-top: 20px; text-align: left; }
+        .score-badge { background: #28a745; color: white; padding: 3px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="header">
-        <h1><span>🎬</span> clipper</h1>
-        <p>Potong video panjang jadi vertikal 9:16 otomatis lewat AI.</p>
-        <div class="badge">✨ Fitur Smart Auto-Cut Aktif</div>
+        <h1><span>🎬</span> clipper pro</h1>
+        <p>Dashboard Otomatis Pemotong Video Massal & Auto Caption AI.</p>
+        <div class="badge">🔥 Mode Multi-Clip & Subtitle Aktif</div>
     </div>
 
     <div class="form-group">
@@ -38,29 +37,35 @@
         <input type="text" id="url-video" placeholder="Masukkan link video YouTube">
     </div>
 
-    <!-- Pilihan Mode Gunting -->
     <div class="form-group">
         <label>Metode Pemotongan Video</label>
         <div class="mode-container">
-            <div class="mode-option active" id="cut-manual" onclick="setCutMode('manual')">Manual Cut (Atur Waktu)</div>
-            <div class="mode-option" id="cut-auto" onclick="setCutMode('auto')">🤖 Smart Auto-Cut (Dipilihkan AI)</div>
+            <div class="mode-option active" id="cut-manual" onclick="setCutMode('manual')">Manual Cut</div>
+            <div class="mode-option" id="cut-auto" onclick="setCutMode('auto')">🤖 AI Multi-Cut (3 Klip)</div>
         </div>
     </div>
 
-    <!-- Kolom Manual yang otomatis hilang jika mode Auto aktif -->
     <div id="opsi-manual-container">
         <div class="form-group">
-            <label>Atur Rentang Waktu (Menit:Detik)</label>
-            <div class="time-box">
-                <input type="text" id="time-start" value="02:00" placeholder="Mulai">
-                <input type="text" id="time-end" value="02:55" placeholder="Selesai">
+            <label>Rentang Waktu (Menit:Detik)</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="time-start" value="02:00" style="width:50%; text-align:center;">
+                <input type="text" id="time-end" value="02:55" style="width:50%; text-align:center;">
             </div>
         </div>
-
         <div class="form-group">
-            <label>Teks Visual Hook (3 Detik Pertama)</label>
-            <input type="text" id="teks-hook" placeholder="Contoh: Momen Paling Plot Twist! 😱">
+            <label>Teks Visual Hook Manual</label>
+            <input type="text" id="teks-hook" placeholder="Contoh: Momen Paling Menarik! 😱">
         </div>
+    </div>
+
+    <div class="form-group">
+        <label>Warna Teks Auto-Caption</label>
+        <select id="warna-sub">
+            <option value="yellow">💛 Kuning Vizard Style</option>
+            <option value="green">💚 Hijau TikTok Style</option>
+            <option value="white">🤍 Putih Polos Baku</option>
+        </select>
     </div>
 
     <div class="form-group">
@@ -71,18 +76,13 @@
         </div>
     </div>
 
-    <button class="btn-submit" onclick="eksekusiBuatVideo()">Buat video otomatis</button>
+    <button class="btn-submit" onclick="eksekusiBuatVideoMassal()">Buat Video Massal Otomatis</button>
 
-    <div id="loading">
-        <div style="margin-bottom:10px;">⏳</div>
-        <span id="loading-text">AI sedang membaca konten dan memotong video Anda...</span>
-    </div>
+    <div id="loading">⏳ <span id="loading-text">AI sedang mengekstrak, menganalisis, dan memotong 3 klip video terbaik sekaligus...</span></div>
 
-    <div id="hasil-container">
-        <h4 style="color: #28a745; margin-top: 0;">🎉 Klip Video Siap!</h4>
-        <p id="info-ai" style="font-size: 13px; color: #ff3b69; font-weight: bold;"></p>
-        <video id="video-player" width="100%" style="border-radius: 8px;" controls></video>
-        <a id="download-link" href="#" download><button class="btn-submit" style="background: #28a745; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);">Download Video</button></a>
+    <div id="daftar-hasil" style="margin-top:25px; display:none;">
+        <h3 style="color: #28a745; text-align:center;">🎉 Hasil Pemotongan AI Berhasil!</h3>
+        <div id="konten-klip"></div>
     </div>
 </div>
 
@@ -94,7 +94,6 @@
         cutMode = mode;
         document.getElementById('cut-manual').classList.remove('active');
         document.getElementById('cut-auto').classList.remove('active');
-        
         if(mode === 'manual') {
             document.getElementById('cut-manual').classList.add('active');
             document.getElementById('opsi-manual-container').style.display = 'block';
@@ -112,12 +111,13 @@
         else document.getElementById('mode-blur').classList.add('active');
     }
 
-    function eksekusiBuatVideo() {
+    function eksekusiBuatVideoMassal() {
         const url = document.getElementById('url-video').value;
         if(!url) { alert("Harap masukkan Link YouTube!"); return; }
 
         document.getElementById('loading').style.display = 'block';
-        document.getElementById('hasil-container').style.display = 'none';
+        document.getElementById('daftar-hasil').style.display = 'none';
+        document.getElementById('konten-klip').innerHTML = '';
 
         fetch('/proses', {
             method: 'POST',
@@ -128,23 +128,34 @@
                 mulai: document.getElementById('time-start').value,
                 selesai: document.getElementById('time-end').value,
                 teks_hook: document.getElementById('teks-hook').value,
-                mode: displayMode
+                mode: displayMode,
+                warna_sub: document.getElementById('warna-sub').value
             })
         })
         .then(res => res.json())
         .then(data => {
             document.getElementById('loading').style.display = 'none';
             if(data.status === "Sukses") {
-                document.getElementById('hasil-container').style.display = 'block';
-                document.getElementById('info-ai').innerText = `🤖 Hasil Pilihan AI: Menit ${data.mulai_terpilih} s/d ${data.selesai_terpilih} \nHook: "${data.teks_hook_terpilih}"`;
-                document.getElementById('video-player').src = data.video_url;
+                document.getElementById('daftar-hasil').style.display = 'block';
+                data.klips.forEach((klip, i) => {
+                    document.getElementById('konten-klip').innerHTML += `
+                        <div class="klip-box">
+                            <h4 style="margin:0 0 8px 0; color:#ff3b69;">🎬 Klip #${i+1} (${klip.mulai} - ${klip.selesai})</h4>
+                            <p style="margin:5px 0;"><span class="score-badge">📈 Skor Viral: ${klip.skor}%</span></p>
+                            <p style="font-size:13px; color:#c9d1d9; margin:5px 0;"><b>Hook:</b> "${klip.teks_hook}"</p>
+                            <p style="font-size:12px; color:#8b949e; margin:5px 0 12px 0;"><b>Analisis AI:</b> ${klip.alasan}</p>
+                            <video width="100%" style="border-radius:8px; margin-bottom:10px;" controls src="${klip.video_url}"></video>
+                            <a href="${klip.video_url}" download><button class="btn-submit" style="background:#28a745; margin:0; padding:10px;">Download Klip #${i+1}</button></a>
+                        </div>
+                    `;
+                });
             } else {
                 alert("Error: " + data.error);
             }
         })
         .catch(err => {
             document.getElementById('loading').style.display = 'none';
-            alert("Gagal memproses ke Termux.");
+            alert("Gagal terhubung ke Termux.");
         });
     }
 </script>
